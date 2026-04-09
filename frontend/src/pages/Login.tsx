@@ -127,7 +127,7 @@ export const Login: React.FC = () => {
           </form>
 
           {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
+          {/* <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
             <p className="text-sm font-semibold text-gray-900 mb-3">Demo Credentials</p>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -161,7 +161,7 @@ export const Login: React.FC = () => {
             <p className="text-xs text-center text-gray-500 mt-3">
               Password: admin123 / user123
             </p>
-          </div>
+          </div> */}
         </Card>
 
         {/* Footer */}
