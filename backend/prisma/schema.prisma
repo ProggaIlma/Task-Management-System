@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String     @id @default(uuid())
+  email         String     @unique
+  password      String
+  name          String
+  role          Role       @default(USER)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  auditLogs     AuditLog[]
+  assignedTasks Task[]     @relation("AssignedTasks")
+  createdTasks  Task[]     @relation("CreatedTasks")
+}
+
+model Task {
+  id           String     @id @default(uuid())
+  title        String
+  description  String
+  status       TaskStatus @default(PENDING)
+  assignedTo   String?
+  createdBy    String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  auditLogs    AuditLog[]
+  assignedUser User?      @relation("AssignedTasks", fields: [assignedTo], references: [id])
+  creator      User       @relation("CreatedTasks", fields: [createdBy], references: [id])
+}
+
+model AuditLog {
+  id         String     @id @default(uuid())
+  actorId    String
+  action     ActionType
+  targetId   String?
+  beforeData Json?
+  afterData  Json?
+  summary    String
+  createdAt  DateTime   @default(now())
+  actor      User       @relation(fields: [actorId], references: [id])
+  target     Task?      @relation(fields: [targetId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum TaskStatus {
+  PENDING
+  PROCESSING
+  DONE
+}
+
+enum ActionType {
+  CREATE_TASK
+  UPDATE_TASK
+  DELETE_TASK
+  STATUS_CHANGE
+  ASSIGNMENT_CHANGE
+}
