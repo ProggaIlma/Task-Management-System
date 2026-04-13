@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { API } from '@config/api';
 import { useAuthStore } from '@store/authStore';
-import { ToastService } from '@services/toast.service';
 
 class ApiService {
   private api = axios.create({
