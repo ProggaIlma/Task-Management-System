@@ -1,13 +1,15 @@
 import {
   ForbiddenException, Injectable, NotFoundException
 } from '@nestjs/common';
-import { Task } from '@prisma/client';
+import { Prisma, Task } from '@prisma/client';
 import { PrismaService } from '@prisma/prisma.service';
 import { AuditService } from '@audit/audit.service';
 import { CreateTaskDto, UpdateTaskDto, PaginationDto } from './dto/task.dto';
 import { ActionType } from '@prisma/client';
 import { Role } from '@common/enums/role.enum';
-
+export type TaskWithRelations = Prisma.TaskGetPayload<{
+  include: typeof TASK_INCLUDE;
+}>;
 const TASK_INCLUDE = { assignedUser: true, creator: true } as const;
 
 @Injectable()
@@ -97,7 +99,7 @@ async updateTask(
   const afterAssignee = dto.assignedTo ?? null;
 
   if (dto.assignedTo !== undefined && beforeAssignee !== afterAssignee) {
-    const oldUser = before.assignedUser?.name || 'Unassigned';
+    const oldUser = before?.assignedUser?.name || 'Unassigned';
     const newUser = task.assignedUser?.name || 'Unassigned';
 
     changes.push({
@@ -206,7 +208,7 @@ async getTaskStats(userId: string, role: string) {
     taskId: string,
     userId: string,
     role: Role,
-  ): Promise<Task> {
+  ): Promise<TaskWithRelations> {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
       include: TASK_INCLUDE,
