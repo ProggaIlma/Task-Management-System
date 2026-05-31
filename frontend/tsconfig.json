@@ -5,7 +5,7 @@
     "moduleResolution": "bundler",
     "target": "esnext",
     "baseUrl": "./",
-    "types": [],
+   "types": ["vite/client"], 
 
     "paths": {
       "@/*": ["src/*"],
@@ -24,8 +24,8 @@
 
     // Other Outputs
     "sourceMap": true,
-    "declaration": true,
-    "declarationMap": true,
+        "noEmit": true,        
+
 
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
