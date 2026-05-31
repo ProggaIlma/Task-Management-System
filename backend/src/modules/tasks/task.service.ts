@@ -62,28 +62,114 @@ async findAllTasks(userId: string, role: string, pagination: PaginationDto) {
     return this.findAndAuthorize(taskId, userId, role);
   }
 
-  async updateTask(
-    taskId: string,
-    userId: string,
-    role: Role,
-    dto: UpdateTaskDto,
-  ): Promise<Task> {
-    const before = await this.findAndAuthorize(taskId, userId, role);
-    const task = await this.prisma.task.update({
-      where: { id: taskId },
-      data: dto,
-      include: TASK_INCLUDE,
+async updateTask(
+  taskId: string,
+  userId: string,
+  role: Role,
+  dto: UpdateTaskDto,
+): Promise<Task> {
+  const before = await this.findAndAuthorize(taskId, userId, role);
+
+  const task = await this.prisma.task.update({
+    where: { id: taskId },
+    data: dto,
+    include: TASK_INCLUDE,
+  });
+
+  const changes: Array<{
+    action: ActionType;
+    beforeData: any;
+    afterData: any;
+    summary: string;
+  }> = [];
+
+  // Status change
+  if (dto.status !== undefined && before.status !== dto.status) {
+    changes.push({
+      action: ActionType.STATUS_CHANGE,
+      beforeData: { status: before.status },
+      afterData: { status: task.status }, // use task.status (post-update) not dto
+      summary: `Status changed from ${before.status} to ${task.status}`,
     });
-    await this.auditService.logAction({
-      actorId: userId,
+  }
+
+  const beforeAssignee = before.assignedTo ?? null;
+  const afterAssignee = dto.assignedTo ?? null;
+
+  if (dto.assignedTo !== undefined && beforeAssignee !== afterAssignee) {
+    const oldUser = before.assignedUser?.name || 'Unassigned';
+    const newUser = task.assignedUser?.name || 'Unassigned';
+
+    changes.push({
+      action: ActionType.ASSIGNMENT_CHANGE,
+      beforeData: { assignedTo: before.assignedTo, assignedUser: before.assignedUser },
+      afterData: { assignedTo: task.assignedTo, assignedUser: task.assignedUser },
+      summary: `Assignment changed from ${oldUser} to ${newUser}`,
+    });
+  }
+
+  if (dto.title !== undefined && before.title !== dto.title) {
+    changes.push({
       action: ActionType.UPDATE_TASK,
-      targetId: task.id,
+      beforeData: { title: before.title },
+      afterData: { title: task.title },
+      summary: `Title changed from "${before.title}" to "${task.title}"`,
+    });
+  }
+
+  if (dto.description !== undefined && before.description !== dto.description) {
+    changes.push({
+      action: ActionType.UPDATE_TASK,
+      beforeData: { description: before.description },
+      afterData: { description: task.description },
+      summary: `Description updated`,
+    });
+  }
+
+  if (changes.length === 0) {
+    changes.push({
+      action: ActionType.UPDATE_TASK,
       beforeData: before,
       afterData: task,
-      summary: `Task "${task.title}" updated`,
+      summary: `Task updated`,
     });
-    return task;
   }
+
+  for (const change of changes) {
+    await this.auditService.logAction({
+      actorId: userId,
+      action: change.action,
+      targetId: task.id,
+      beforeData: change.beforeData,
+      afterData: change.afterData,
+      summary: `Task "${task.title}": ${change.summary}`,
+    });
+  }
+
+  return task;
+}
+  // async updateTask(
+  //   taskId: string,
+  //   userId: string,
+  //   role: Role,
+  //   dto: UpdateTaskDto,
+  // ): Promise<Task> {
+  //   const before = await this.findAndAuthorize(taskId, userId, role);
+  //   const task = await this.prisma.task.update({
+  //     where: { id: taskId },
+  //     data: dto,
+  //     include: TASK_INCLUDE,
+  //   });
+  //   await this.auditService.logAction({
+  //     actorId: userId,
+  //     action: ActionType.UPDATE_TASK,
+  //     targetId: task.id,
+  //     beforeData: before,
+  //     afterData: task,
+  //     summary: `Task "${task.title}" updated`,
+  //   });
+  //   return task;
+  // }
 
   async deleteTask(taskId: string, userId: string, role: Role) {
   const task = await this.findOneTask(taskId, userId, role);
