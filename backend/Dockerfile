@@ -1,4 +1,5 @@
-FROM node:18-bullseye
+# ── Stage 1: Build ──────────────────────────────
+FROM node:18-bullseye AS builder
 
 WORKDIR /app
 
@@ -13,6 +14,23 @@ RUN npx prisma generate
 COPY . .
 
 RUN npm run build
+
+# ── Stage 2: Production ─────────────────────────
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install openssl for Prisma
+RUN apk add --no-cache openssl
+
+# Copy only what's needed to run
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/package*.json ./
+
+# Non-root user (alpine has 'node' user built in)
+USER node
 
 EXPOSE 3001
 
